@@ -3,7 +3,7 @@ blueprint:
   description: >
     Creates a template sensor that turns on if **any** device in the chosen area
     reports one of your specified “on” states.
-  domain: sensor
+  domain: template
   input:
     area:
       name: Area to monitor
