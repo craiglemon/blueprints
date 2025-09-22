@@ -1,0 +1,54 @@
+blueprint:
+  name: Area Active Template Sensor
+  description: >
+    Creates a template sensor that turns on if **any** device in the chosen area
+    reports one of your specified “on” states.
+  domain: sensor
+  input:
+    area:
+      name: Area to monitor
+      description: Pick the Home Assistant area whose devices you want to watch.
+      selector:
+        area: {}
+    sensor_name:
+      name: Sensor Friendly Name
+      description: The name you'll see in the UI (e.g. "Living Room Active").
+      default: Area Active
+      selector:
+        text: {}
+    sensor_unique_id:
+      name: Sensor Unique ID
+      description: A unique identifier (e.g. `living_room_active`).
+      selector:
+        text: {}
+    on_states:
+      name: States considered "on"
+      description: A comma-separated list of states that should set the sensor to on.
+      default: on,open,home
+      selector:
+        text: {}
+    icon:
+      name: Sensor Icon
+      description: Material design icon for this sensor.
+      default: mdi:home-alert
+      selector:
+        icon: {}
+
+template:
+  - sensor:
+      - name: !input sensor_name
+        unique_id: !input sensor_unique_id
+        icon: !input icon
+        state: >
+          {% set area_id = area_registry.get_area(!input area).name %}
+          {% set devices = area_entities(area_id) %}
+          {% set active_states = !input on_states.split(',') %}
+          {% if expand(devices) | selectattr('state','in', active_states) | list | count > 0 %}
+            on
+          {% else %}
+            off
+          {% endif %}
+        attributes:
+          active_devices: >
+            {% set active_states = !input on_states.split(',') %}
+            {{ expand(devices) | selectattr('state','in', active_states) | map(attribute='entity_id') | list | join(', ') }}
