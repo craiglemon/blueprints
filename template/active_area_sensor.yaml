@@ -15,8 +15,20 @@ blueprint:
       default: on,open,home
       selector:
         text: {}
+    sensor_unique_id:
+      name: Sensor Unique ID
+      description: A unique identifier (e.g. "living_room_active").
+      selector:
+        text: {}
+    sensor_name:
+      name: Sensor Name
+      description: The name of the sensor to create.
+      selector:
+        text: {}
 
 binary_sensor:
+  name: !input sensor_name
+  unique_id: !input sensor_unique_id
   state: >
     {% set area_id = area_registry.get_area(!input area).name %}
     {% set devices = area_entities(area_id) %}
