@@ -1,7 +1,6 @@
 blueprint:
   name: Area Active Template Sensor
-  description: >
-    Creates a template sensor that turns on if **any** device in the chosen area reports one of your specified "on" states.
+  description: A template sensor that turns on if **any** device in the chosen area reports one of your specified "on" states.
   domain: template
   input:
     area:
@@ -15,26 +14,8 @@ blueprint:
       default: on,open,home
       selector:
         text: {}
-    sensor_unique_id:
-      name: Sensor Unique ID
-      description: A unique identifier (e.g. "living_room_active").
-      selector:
-        text: {}
-    sensor_name:
-      name: Sensor Name
-      description: The name of the sensor to create (e.g. "Living Room Active").
-      selector:
-        text: {}
-    sensor_icon:
-      name: Sensor Icon Name
-      description: The name of the sensor icon.
-      selector:
-        text: {}
 
 binary_sensor:
-  name: !input sensor_name
-  unique_id: !input sensor_unique_id
-  icon: !input sensor_icon
   state: >
     {% set area_id = area_registry.get_area(!input area).name %}
     {% set devices = area_entities(area_id) %}
