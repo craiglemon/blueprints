@@ -25,7 +25,7 @@ blueprint:
       description: The name of the sensor to create (e.g. "Living Room Active").
       selector:
         text: {}
-    sensor_icon:
+    icon_name:
       name: Icon Name
       description: The name of the sensor icon.
       selector:
