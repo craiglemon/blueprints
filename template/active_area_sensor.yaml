@@ -15,7 +15,7 @@ blueprint:
       selector:
         text: {}
 
-template
+template:
   - binary_sensor:
     state: >
       {% set area_id = area_registry.get_area(!input area).name %}
