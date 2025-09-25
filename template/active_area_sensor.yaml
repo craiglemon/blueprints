@@ -1,8 +1,7 @@
 blueprint:
   name: Area Active Template Sensor
   description: >
-    Creates a template sensor that turns on if **any** device in the chosen area
-    reports one of your specified “on” states.
+    Creates a template sensor that turns on if **any** device in the chosen area reports one of your specified "on" states.
   domain: template
   input:
     area:
@@ -18,7 +17,7 @@ blueprint:
         text: {}
     sensor_unique_id:
       name: Sensor Unique ID
-      description: A unique identifier (e.g. `living_room_active`).
+      description: A unique identifier (e.g. "living_room_active").
       selector:
         text: {}
     on_states:
@@ -43,7 +42,7 @@ template:
           {% set area_id = area_registry.get_area(!input area).name %}
           {% set devices = area_entities(area_id) %}
           {% set active_states = !input on_states.split(',') %}
-          {% if expand(devices) | selectattr('state','in', active_states) | list | count > 0 %}
+          {% if expand(devices) | selectattr('state', 'in', active_states) | list | count > 0 %}
             on
           {% else %}
             off
@@ -51,4 +50,4 @@ template:
         attributes:
           active_devices: >
             {% set active_states = !input on_states.split(',') %}
-            {{ expand(devices) | selectattr('state','in', active_states) | map(attribute='entity_id') | list | join(', ') }}
+            {{ expand(devices) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
