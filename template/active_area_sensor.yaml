@@ -26,19 +26,13 @@ blueprint:
       selector:
         text: {}
 
-variables:
-  area: !input area
-  on_states: !input on_states.split(',')
-  sensor_unique_id: !input sensor_unique_id
-  sensor_name: !input sensor_name
-
 binary_sensor:
-  name: {{ sensor_name }}
-  unique_id: {{ sensor_unique_id }}
+  name: !input sensor_name
+  unique_id: !input sensor_unique_id
   state: >
-    {% set area_id = area_registry.get_area(area).name %}
+    {% set area_id = area_registry.get_area(!input area).name %}
     {% set devices = area_entities(area_id) %}
-    {% set active_states = on_states.split(',') %}
+    {% set active_states = !input on_states.split(',') %}
     {% if expand(devices) | selectattr('state', 'in', active_states) | list | count > 0 %}
       on
     {% else %}
@@ -46,5 +40,5 @@ binary_sensor:
     {% endif %}
   attributes:
     active_devices: >
-      {% set active_states = on_states.split(',') %}
+      {% set active_states = !input on_states.split(',') %}
       {{ expand(devices) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
