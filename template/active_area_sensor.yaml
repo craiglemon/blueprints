@@ -25,8 +25,8 @@ blueprint:
       description: The name of the sensor to create (e.g. "Living Room Active").
       selector:
         text: {}
-    icon_name:
-      name: Icon Name
+    sensor_icon:
+      name: Sensor Icon Name
       description: The name of the sensor icon.
       selector:
         text: {}
@@ -34,7 +34,7 @@ blueprint:
 binary_sensor:
   name: !input sensor_name
   unique_id: !input sensor_unique_id
-  icon: !input icon_name
+  icon: !input sensor_icon
   state: >
     {% set area_id = area_registry.get_area(!input area).name %}
     {% set devices = area_entities(area_id) %}
