@@ -15,18 +15,21 @@ blueprint:
       selector:
         text: {}
 
-template:
-  - binary_sensor:
-    state: >
-      {% set area_id = area_registry.get_area(!input area).name %}
-      {% set devices = area_entities(area_id) %}
-      {% set active_states = !input on_states.split(',') %}
-      {% if expand(devices) | selectattr('state', 'in', active_states) | list | count > 0 %}
-        on
-      {% else %}
-        off
-      {% endif %}
-    attributes:
-      active_devices: >
-        {% set active_states = !input on_states.split(',') %}
-        {{ expand(devices) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
+variables:
+  area_name: !input area
+  on_states: !input on_states
+
+binary_sensor:
+  state: >
+    {% set device_list = area_entities(area_name) %}
+    {% set active_states = on_states.split(',') %}
+    {% if expand(device_list) | selectattr('state', 'in', active_states) | list | count > 0 %}
+      on
+    {% else %}
+      off
+    {% endif %}
+  attributes:
+    active_devices: >
+      {% set device_list = area_entities(area_name) %}
+      {% set active_states = on_states.split(',') %}
+      {{ expand(device_list) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
