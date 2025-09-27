@@ -14,15 +14,22 @@ blueprint:
       default: on,open,home
       selector:
         text: {}
+    exclude_entities:
+      name: Entities to exclude
+      description: An array of entity IDs to ignore.
+      selector:
+        entity:
+          multiple: true
 
 variables:
   area_name: !input area
   on_states: !input on_states
+  exclude_entities: !input exclude_entities
 
 binary_sensor:
   state: >
-    {% set device_list = area_entities(area_name) %}
     {% set active_states = on_states.split(',') %}
+    {% set device_list = area_entities(area_name) | reject('in', exclude_entities) | list %}
     {% if expand(device_list) | selectattr('state', 'in', active_states) | list | count > 0 %}
       on
     {% else %}
@@ -30,6 +37,37 @@ binary_sensor:
     {% endif %}
   attributes:
     active_devices: >
-      {% set device_list = area_entities(area_name) %}
       {% set active_states = on_states.split(',') %}
+      {% set device_list = area_entities(area_name) | reject('in', exclude_entities) | list %}
       {{ expand(device_list) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
+
+
+# - binary_sensor:
+#     - name: "Is Lounge Active"
+#       state: >
+#         {% set area_name = 'Lounge' %}
+#         {% set on_states = 'on,home,open' %}
+#         {% set device_list = area_entities(area_name) %}
+#         {% set active_states = on_states.split(',') %}
+        
+#         {% set exclude_ids = [
+#           'switch.lounge_2_do_not_disturb',
+#           'switch.lounge_1_do_not_disturb',
+#           'binary_sensor.zigbee2mqtt_bridge_connection_state',
+#           'input_boolean.lounge_sensor_automations'
+#         ] %}
+
+#         {% set device_list = area_entities(area_name) | reject('in', exclude_ids) | list %}
+
+#         {% if expand(device_list) | selectattr('state', 'in', active_states) | list | count > 0 %}
+#           on
+#         {% else %}
+#           off
+#         {% endif %}
+#       attributes:
+#         active_devices: >
+#           {% set area_name = 'Lounge' %}
+#           {% set sensor_on_states = 'on,home,open' %}
+#           {% set device_list = area_entities(area_name) %}
+#           {% set active_states = sensor_on_states.split(',') %}
+#           {{ expand(device_list) | selectattr('state', 'in', active_states) | map(attribute='entity_id') | list | join(', ') }}
