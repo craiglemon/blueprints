@@ -1,0 +1,113 @@
+blueprint:
+  name: Area Turn Off Script
+  description: >
+    Script to turn off all devices in a selected Home Assistant area,
+    retry if needed, and optionally notify if any remain on.
+  domain: script
+  input:
+    area:
+      name: Area to Shutdown
+      description: Select the Home Assistant Area whose devices you want to turn off.
+      selector:
+        area: {}
+    domains:
+      name: Domains to Turn Off
+      description: >
+        Comma-separated list of domains (e.g., `switch,light,fan,media_player`).
+      default: switch,light,fan,media_player
+      selector:
+        text: {}
+    retry_count:
+      name: Retry Attempts
+      description: How many times to retry turning off devices if they're still on.
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 5
+    retry_delay:
+      name: Delay Between Retries (seconds)
+      description: Seconds to wait before each retry.
+      default: 30
+      selector:
+        number:
+          min: 5
+          max: 300
+    notify_service:
+      name: Notification Service
+      description: Optional notify service to alert if devices remain on.
+      default: none
+      selector:
+        entity:
+          domain: notify
+
+script:
+  alias: Shutdown Devices in Area
+  description: Turns off all entities in the selected area, retries, and notifies if needed.
+  sequence:
+    # 1. Turn Off Primary Domains
+    - service: homeassistant.turn_off
+      data:
+        entity_id: >-
+          {% set area = expand('area.' ~ !input area) %}
+          {% set domain_list = (!input domains).split(',') | map('trim') | list %}
+          {{ area
+             | selectattr('domain','in', domain_list)
+             | map(attribute='entity_id')
+             | join(',') }}
+    # 2. Close Covers
+    - service: cover.close
+      data:
+        entity_id: >-
+          {{ expand('area.' ~ !input area)
+             | selectattr('domain','equalto','cover')
+             | map(attribute='entity_id')
+             | join(',') }}
+    # 3. Turn Off Climate Devices
+    - service: climate.set_hvac_mode
+      data:
+        hvac_mode: 'off'
+      target:
+        entity_id: >-
+          {{ expand('area.' ~ !input area)
+             | selectattr('domain','equalto','climate')
+             | map(attribute='entity_id')
+             | join(',') }}
+    # # 4. Retry Loop for Remaining Entities
+    # - repeat:
+    #     count: !input retry_count
+    #     sequence:
+    #       - delay: seconds: !input retry_delay
+    #       - variables:
+    #           still_on: >-
+    #             {{ expand('area.' ~ !input area)
+    #                | rejectattr('state','equalto','off')
+    #                | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
+    #                | map(attribute='entity_id')
+    #                | list }}
+    #       - choose:
+    #           - conditions: "{{ still_on | length > 0 }}"
+    #             sequence:
+    #               - service: homeassistant.turn_off
+    #                 data:
+    #                   entity_id: "{{ still_on | join(',') }}"
+    # # 5. Final Notification
+    # - variables:
+    #     final_still_on: >-
+    #       {{ expand('area.' ~ !input area)
+    #          | rejectattr('state','equalto','off')
+    #          | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
+    #          | map(attribute='entity_id')
+    #          | list }}
+    # - choose:
+    #     - conditions:
+    #         - "{{ final_still_on | length > 0 }}"
+    #         - "{{ !input notify_service != 'none' }}"
+    #       sequence:
+    #         - service: !input notify_service
+    #           data:
+    #             message: >
+    #               Devices still on in area {{ !input area }}: 
+    #               {{ final_still_on | join(', ') }}
+
+mode: single
