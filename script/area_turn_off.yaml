@@ -58,8 +58,7 @@ sequence:
                 data:
                   hvac_mode: 'off'
                 target:
-                  entity_id: >
-                    {{ climate_list }}
+                  entity_id: "{{ climate_list }}"
   # # 4. Retry Loop for Remaining Entities
   # - repeat:
   #     count: !input retry_count
