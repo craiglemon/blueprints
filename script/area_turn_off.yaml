@@ -41,7 +41,7 @@ sequence:
         {% set domains = input_domains.split(',') %}  
         {{ expand(device_list) | selectattr('domain','in',domains) | map(attribute='entity_id') | list | join(',') }}
   # 2. Close Covers
-  - action: cover.close
+  - action: cover.close_cover
     data:
       entity_id: >
         {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | join(',') }}
