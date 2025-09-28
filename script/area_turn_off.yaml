@@ -40,18 +40,18 @@ sequence:
       entity_id: >
         {% set domains = input_domains.split(',') %}  
         {{ expand(device_list) | selectattr('domain','in',domains) | map(attribute='entity_id') | list | join(',') }}
-  # 2. Close Covers
-  - action: cover.close_cover
-    data:
-      entity_id: >
-        {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | join(',') }}
-  # 3. Turn Off Climate Devices
-  - action: climate.set_hvac_mode
-    data:
-      hvac_mode: 'off'
-    target:
-      entity_id: >
-        {{ expand(device_list) | selectattr('domain', 'equalto', 'climate') | map(attribute='entity_id') | join(',') }}
+  # # 2. Close Covers
+  # - action: cover.close_cover
+  #   data:
+  #     entity_id: >
+  #       {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | join(',') }}
+  # # 3. Turn Off Climate Devices
+  # - action: climate.set_hvac_mode
+  #   data:
+  #     hvac_mode: 'off'
+  #   target:
+  #     entity_id: >
+  #       {{ expand(device_list) | selectattr('domain', 'equalto', 'climate') | map(attribute='entity_id') | join(',') }}
   # # 4. Retry Loop for Remaining Entities
   # - repeat:
   #     count: !input retry_count
