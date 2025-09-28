@@ -1,7 +1,7 @@
 blueprint:
-  name: Area Turn Off Script
+  name: Area Turn Off
   description: >
-    Script to turn off all devices in a selected Home Assistant area.
+    Blueprint of domain script to turn off all devices in a selected Home Assistant area.
   domain: script
   input:
     area:
