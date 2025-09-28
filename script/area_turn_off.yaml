@@ -34,6 +34,8 @@ sequence:
   - variables:
       device_list: >
         {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
+      climate_list: >
+        {{ expand(device_list) | selectattr('domain', 'equalto', 'climate') | map(attribute='entity_id') | list }}
   # 1. Turn Off Primary Domains
   - action: homeassistant.turn_off
     data:
@@ -51,7 +53,7 @@ sequence:
       hvac_mode: 'off'
     target:
       entity_id: >
-        {{ expand(device_list) | selectattr('domain', 'equalto', 'climate') | map(attribute='entity_id') | join(',') }}
+        {{ climate_list | join(',') }}
   # # 4. Retry Loop for Remaining Entities
   # - repeat:
   #     count: !input retry_count
