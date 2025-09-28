@@ -52,7 +52,9 @@ sequence:
   # 3. Turn Off Climate Devices
   - action: 
       - choose:
-          - conditions: "{{ climate_list | length > 0 }}"
+          - conditions: 
+              - condition: Template
+                value_template: "{{ climate_list | length > 0 }}"
             sequence:
               - service: climate.set_hvac_mode
                 data:
