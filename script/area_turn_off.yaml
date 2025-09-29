@@ -9,10 +9,10 @@ blueprint:
       description: Select the Home Assistant Area whose devices you want to turn off.
       selector:
         area: {}
-    domains:
-      name: Domains to Turn Off
+    primary_domains:
+      name: Primary domains to Turn Off
       description: >
-        Comma-separated list of domains (e.g. 'switch,light,fan,media_player').
+        Comma-separated list of primary domains (e.g. 'switch,light,fan,media_player').
       default: switch,light,fan,media_player
       selector:
         text: {}
@@ -27,16 +27,21 @@ mode: single
 
 variables:
   input_area: !input area
-  input_domains: !input domains
+  input_primary_domains: !input primary_domains
   input_exclude_entities: !input exclude_entities
 
 sequence:
   - variables:
       area_entities: "{{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}"
 
-      primary_entities: "{{ expand(area_entities) | selectattr('domain','in', input_domains.split(',') | map('trim') | list) | map(attribute='entity_id') | list }}"
+      primary_entities: "{{ expand(area_entities) | selectattr('domain','in', input_primary_domains.split(',') | map('trim') | list) | map(attribute='entity_id') | list }}"
       climate_entities: "{{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}"
       cover_entities: "{{ expand(area_entities) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}"
+
+  - service: system_log.write
+    data:
+      message: "area_entities: {{ area_entities }} | primary_entities: {{ primary_entities }} | climate_entities: {{ climate_entities }} | cover_entities: {{ cover_entities }}"
+      level: info
 
   # 1. Turn Off Primary devices
   - choose:
