@@ -40,14 +40,15 @@ sequence:
         {{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
 
   # call climate service only if there are climate entities
-  - choose:
-    - conditions: "{{ climate_entities | length > 0 }}"
-      sequence:
-        - service: climate.set_hvac_mode
-          target:
-            entity_id: "{{ climate_entities | join(',') }}"
-          data:
-            hvac_mode: 'off'
+  - action:
+    - choose:
+      - conditions: "{{ climate_entities | length > 0 }}"
+        sequence:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: "{{ climate_entities | join(',') }}"
+            data:
+              hvac_mode: 'off'
 
   # - variables:
   #     device_list: >
