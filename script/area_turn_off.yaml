@@ -32,70 +32,86 @@ variables:
 
 sequence:
   - variables:
-      device_list: >
-        {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
-      cover_list: >
-        {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}
-      climate_list: >
-        {{ expand(device_list) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
-  # 1. Turn Off Primary Domains
-  - action: homeassistant.turn_off
-    data:
-      entity_id: >
-        {% set domains = input_domains.split(',') %}  
-        {{ expand(device_list) | selectattr('domain','in',domains) | map(attribute='entity_id') | list | join(',') }}
-  # # 2. Close Covers
-  # - action: cover.close_cover
+      area_entities: {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
+
+  -variables:
+      climate_entities: {{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
+
+  # call climate service only if there are climate entities
+  - choose:
+    - conditions: "{{ climate_entities | length > 0 }}"
+      sequence:
+        - service: climate.set_hvac_mode
+          target:
+            entity_id: "{{ climate_entities | join(',') }}"
+          data:
+            hvac_mode: 'off'
+
+  # - variables:
+  #     device_list: >
+  #       {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
+  #     cover_list: >
+  #       {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}
+  #     climate_list: >
+  #       {{ expand(device_list) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
+  # # 1. Turn Off Primary Domains
+  # - action: homeassistant.turn_off
   #   data:
   #     entity_id: >
-  #       {{ cover_list | join(',') }}
-  # 3. Turn Off Climate Devices
-  - action: 
-      - choose:
-          - conditions: 
-              - condition: Template
-                value_template: "{{ climate_list | length > 0 }}"
-            sequence:
-              - service: climate.set_hvac_mode
-                data:
-                  hvac_mode: 'off'
-                target:
-                  entity_id: "{{ climate_list }}"
-  # # 4. Retry Loop for Remaining Entities
-  # - repeat:
-  #     count: !input retry_count
-  #     sequence:
-  #       - delay: seconds: !input retry_delay
-  #       - variables:
-  #           still_on: >-
-  #             {{ expand('area.' ~ !input area)
-  #                | rejectattr('state','equalto','off')
-  #                | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
-  #                | map(attribute='entity_id')
-  #                | list }}
-  #       - choose:
-  #           - conditions: "{{ still_on | length > 0 }}"
-  #             sequence:
-  #               - service: homeassistant.turn_off
-  #                 data:
-  #                   entity_id: "{{ still_on | join(',') }}"
-  # # 5. Final Notification
-  # - variables:
-  #     final_still_on: >-
-  #       {{ expand('area.' ~ !input area)
-  #          | rejectattr('state','equalto','off')
-  #          | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
-  #          | map(attribute='entity_id')
-  #          | list }}
-  # - choose:
-  #     - conditions:
-  #         - "{{ final_still_on | length > 0 }}"
-  #         - "{{ !input notify_service != 'none' }}"
-  #       sequence:
-  #         - service: !input notify_service
-  #           data:
-  #             message: >
-  #               Devices still on in area {{ !input area }}: 
-  #               {{ final_still_on | join(', ') }}
+  #       {% set domains = input_domains.split(',') %}  
+  #       {{ expand(device_list) | selectattr('domain','in',domains) | map(attribute='entity_id') | list | join(',') }}
+  # # # 2. Close Covers
+  # # - action: cover.close_cover
+  # #   data:
+  # #     entity_id: >
+  # #       {{ cover_list | join(',') }}
+  # # 3. Turn Off Climate Devices
+  # - action: 
+  #     - choose:
+  #         - conditions: 
+  #             - condition: Template
+  #               value_template: "{{ climate_list | length > 0 }}"
+  #           sequence:
+  #             - service: climate.set_hvac_mode
+  #               data:
+  #                 hvac_mode: 'off'
+  #               target:
+  #                 entity_id: "{{ climate_list }}"
+  # # # 4. Retry Loop for Remaining Entities
+  # # - repeat:
+  # #     count: !input retry_count
+  # #     sequence:
+  # #       - delay: seconds: !input retry_delay
+  # #       - variables:
+  # #           still_on: >-
+  # #             {{ expand('area.' ~ !input area)
+  # #                | rejectattr('state','equalto','off')
+  # #                | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
+  # #                | map(attribute='entity_id')
+  # #                | list }}
+  # #       - choose:
+  # #           - conditions: "{{ still_on | length > 0 }}"
+  # #             sequence:
+  # #               - service: homeassistant.turn_off
+  # #                 data:
+  # #                   entity_id: "{{ still_on | join(',') }}"
+  # # # 5. Final Notification
+  # # - variables:
+  # #     final_still_on: >-
+  # #       {{ expand('area.' ~ !input area)
+  # #          | rejectattr('state','equalto','off')
+  # #          | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
+  # #          | map(attribute='entity_id')
+  # #          | list }}
+  # # - choose:
+  # #     - conditions:
+  # #         - "{{ final_still_on | length > 0 }}"
+  # #         - "{{ !input notify_service != 'none' }}"
+  # #       sequence:
+  # #         - service: !input notify_service
+  # #           data:
+  # #             message: >
+  # #               Devices still on in area {{ !input area }}: 
+  # #               {{ final_still_on | join(', ') }}
 
 
