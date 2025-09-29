@@ -32,17 +32,17 @@ variables:
 
 sequence:
   - variables:
-      area_entities: >
-        {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
+      area_entities: "{{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}"
 
   - variables:
-      climate_entities: >
-        {{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
+      climate_entities: "{{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}"
 
   # call climate service only if there are climate entities
   - action:
     - choose:
-      - conditions: "{{ climate_entities | length > 0 }}"
+      - conditions: 
+          - condition: Template
+            value_template: "{{ climate_entities | length > 0 }}"
         sequence:
           - service: climate.set_hvac_mode
             target:
