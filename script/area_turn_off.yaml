@@ -33,9 +33,23 @@ variables:
 sequence:
   - variables:
       area_entities: "{{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}"
-      climate_entities: "{{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}"
 
-  # call climate service only if there are climate entities
+      primary_entities: "{{ expand(area_entities) | selectattr('domain','in', input_domains.split(',') | map('trim') | list) | map(attribute='entity_id') | list }}"
+      climate_entities: "{{ expand(area_entities) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}"
+      cover_entities: "{{ expand(area_entities) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}"
+
+  # 1. Turn Off Primary devices
+  - choose:
+    - conditions: 
+        - condition: template
+          value_template: "{{ primary_entities | length > 0 }}"
+      sequence:
+        - service: homeassistant.turn_off
+          data:
+            entity_id: >
+              {{ primary_entities }}
+
+  # 2. Turn Off Climate devices
   - choose:
     - conditions: 
         - condition: template
@@ -47,6 +61,17 @@ sequence:
           data:
             hvac_mode: 'off'
 
+  # 3. Close Covers
+  - choose:
+    - conditions: 
+        - condition: template
+          value_template: "{{ cover_entities | length > 0 }}"
+      sequence:
+        - service: cover.close_cover
+          data:
+            entity_id: >
+              {{ cover_entities }}
+              
   # - variables:
   #     device_list: >
   #       {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
