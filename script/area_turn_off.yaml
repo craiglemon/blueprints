@@ -43,13 +43,33 @@ sequence:
       # climate_entities: {{ area_entities | selectattr('domain','equalto','climate') | map(attribute='entity_id') | sort | list }}
       # cover_entities: {{ area_entities | selectattr('domain','equalto','cover') | map(attribute='entity_id') | sort | list }}
 
-      # 1. Return all entities in the area, excluding any in the exclude list
-      area_entities: "{{ expand(area_entities(input_area)) | rejectattr('entity_id','in',input_exclude_entities) | list }}"
-
-      # 2. Filter entities by domain
-      primary_entities: "{{ area_entities | selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | map(attribute='entity_id') | list }}"
-      climate_entities: "{{ area_entities | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}"
-      cover_entities: "{{ area_entities | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}"
+      primary_entities: |-
+        {{ 
+          expand(area_entities(input_area)) |
+            rejectattr('entity_id','in',input_exclude_entities) | 
+            selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
+            map(attribute='entity_id') | 
+            list 
+        }}
+      climate_entities: |-
+        {{ 
+          expand(area_entities(input_area)) |
+            selectattr('domain','equalto','climate') | 
+            map(attribute='entity_id') | 
+            list 
+        }}
+      cover_entities: |-
+        {{ 
+          expand(area_entities(input_area)) |
+            selectattr('domain','equalto','cover') | 
+            map(attribute='entity_id') | 
+            list 
+        }}
+      
+  - service: persistent_notification.create
+    data:
+      title: "primary_entities"
+      message: "{{ primary_entities }}"
 
   # 1. Turn Off Primary devices
   - choose:
