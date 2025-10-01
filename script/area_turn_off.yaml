@@ -1,6 +1,6 @@
 blueprint:
   name: Area Turn Off
-  description: |-
+  description: >-
        Name: area_turn_off.yaml
     Purpose: Blueprint of domain script to turn off all devices in a selected Home Assistant area.
                 - Exclude entities that should not be turned off (e.g. security systems, refrigerators).
