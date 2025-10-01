@@ -47,7 +47,7 @@ mode: single
 variables:
   input_area: !input area
   input_primary_domains: !input primary_domains
-  input_exclude_entities: "{{ input.exclude_entities | default([]) }}"
+  input_exclude_entities: !input exclude_entities
   input_retry_count: !input retry_count
   input_retry_delay: !input retry_delay
   input_on_states: !input on_states
@@ -58,7 +58,7 @@ sequence:
       primary_entities: |-
         {{ 
           expand(area_entities(input_area)) |
-            rejectattr('entity_id','in',input_exclude_entities) | 
+            rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
             map(attribute='entity_id') | 
             list 
@@ -66,7 +66,7 @@ sequence:
       climate_entities: |-
         {{ 
           expand(area_entities(input_area)) |
-            rejectattr('entity_id','in',input_exclude_entities) | 
+            rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','equalto','climate') | 
             map(attribute='entity_id') | 
             list 
@@ -74,7 +74,7 @@ sequence:
       cover_entities: |-
         {{ 
           expand(area_entities(input_area)) |
-            rejectattr('entity_id','in',input_exclude_entities) | 
+            rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','equalto','cover') | 
             map(attribute='entity_id') | 
             list 
@@ -122,7 +122,7 @@ sequence:
             still_on_entities: |-
               {{ 
                 expand(area_entities(input_area)) |
-                  rejectattr('entity_id','in',input_exclude_entities) | 
+                  rejectattr('entity_id','in',input_exclude_entities | default([])) | 
                   selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
                   selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
                   map(attribute='entity_id') |
@@ -142,7 +142,7 @@ sequence:
       final_still_on_entities: |-
         {{ 
           expand(area_entities(input_area)) |
-            rejectattr('entity_id','in',input_exclude_entities) | 
+            rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
             selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
             map(attribute='entity_id') |
