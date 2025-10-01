@@ -47,7 +47,7 @@ mode: single
 variables:
   input_area: !input area
   input_primary_domains: !input primary_domains
-  input_exclude_entities: !input exclude_entities
+  input_exclude_entities: "{{ input.exclude_entities | default([]) }}"
   input_retry_count: !input retry_count
   input_retry_delay: !input retry_delay
   input_on_states: !input on_states
@@ -55,8 +55,6 @@ variables:
 sequence:
   - variables:
       # Get all the entities in the room, then filter by domain and exclude list
-      
-
       primary_entities: |-
         {{ 
           expand(area_entities(input_area)) |
