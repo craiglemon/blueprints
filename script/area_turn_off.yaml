@@ -19,6 +19,7 @@ blueprint:
     exclude_entities:
       name: Entities to exclude
       description: An array of entity IDs to ignore.
+      default: []
       selector:
         entity:
           multiple: true
