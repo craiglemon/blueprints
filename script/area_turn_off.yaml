@@ -1,16 +1,6 @@
 blueprint:
   name: Area Turn Off
-  description: >-
-       Name: area_turn_off.yaml
-    Purpose: Blueprint of domain script to turn off all devices in a selected Home Assistant area.
-                - Exclude entities that should not be turned off (e.g. security systems, refrigerators).
-                - Specify primary domains to target (e.g. switch, light, fan, media_player).
-                - Additionally climate devices are set to 'off' mode and covers are closed.
-                - Retry logic included to ensure devices are turned off.
-                - Final notification lists any devices that remain on after attempts to turn them off.
-     Author: Craig.Lemon@gmail.com
-    Version: 0.1
-       Date: 2025-10-01
+  description: Blueprint of domain script to turn off all devices in a selected Home Assistant area.
   source_url: https://github.com/craiglemon/blueprints/blob/master/script/area_turn_off.yaml
   domain: script
   input:
@@ -98,8 +88,8 @@ sequence:
           value_template: "{{ primary_entities | length > 0 }}"
       sequence:
         - service: homeassistant.turn_off
-          data:
-            entity_id: "{{ primary_entities }}"
+          target:
+            entity_id: "{{ primary_entities | join(', ') }}"
 
   # 2. Turn Off Climate devices
   - choose:
@@ -109,7 +99,7 @@ sequence:
       sequence:
         - service: climate.set_hvac_mode
           target:
-            entity_id: "{{ climate_entities }}"
+            entity_id: "{{ climate_entities | join(', ') }}"
           data:
             hvac_mode: 'off'
 
@@ -120,9 +110,8 @@ sequence:
           value_template: "{{ cover_entities | length > 0 }}"
       sequence:
         - service: cover.close_cover
-          data:
-            entity_id: >
-              {{ cover_entities }}
+          target:
+            entity_id: "{{ cover_entities | join(', ') }}"
               
   # 4. Retry any entities that are still "on"
   - repeat:
@@ -145,11 +134,10 @@ sequence:
                 - condition: template
                   value_template: "{{ still_on_entities | length > 0 }}"
               sequence:
-                - data:
-                    entity_id: |
-                      {{ still_on_entities }}
-                  action: homeassistant.turn_off
-
+                - service: homeassistant.turn_off
+                  target:
+                    entity_id: "{{ still_on_entities | join(', ') }}"
+                  
   # 5. Final log message
   - variables:
       final_still_on_entities: |-
@@ -166,8 +154,8 @@ sequence:
           - condition: template
             value_template: "{{ final_still_on_entities | length > 0 }}"
         sequence:
-          - data:
+          - service: persistent_notification.create
+            data:
               title: Devices still on
               message: >
                 Devices still on in area [{{ input_area }}]:  {{ final_still_on_entities | join(', ') }}
-            action: persistent_notification.create
