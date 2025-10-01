@@ -1,7 +1,17 @@
 blueprint:
   name: Area Turn Off
-  description: >
-    Blueprint of domain script to turn off all devices in a selected Home Assistant area.
+  description: |-
+       Name: area_turn_off.yaml
+    Purpose: Blueprint of domain script to turn off all devices in a selected Home Assistant area.
+                - Exclude entities that should not be turned off (e.g. security systems, refrigerators).
+                - Specify primary domains to target (e.g. switch, light, fan, media_player).
+                - Additionally climate devices are set to 'off' mode and covers are closed.
+                - Retry logic included to ensure devices are turned off.
+                - Final notification lists any devices that remain on after attempts to turn them off.
+     Author: Craig.Lemon@gmail.com
+    Version: 0.1
+       Date: 2025-10-01
+  source_url: https://github.com/craiglemon/blueprints/blob/master/script/area_turn_off.yaml
   domain: script
   input:
     area:
@@ -22,26 +32,39 @@ blueprint:
       selector:
         entity:
           multiple: true
-
+    retry_count: 
+      name: Retry count
+      description: Number of times to retry turning off devices if they fail.
+      default: 3
+      selector:
+        number: {}
+    retry_delay:
+      name: Retry delay
+      description: Delay in seconds between retries.
+      default: 5
+      selector:
+        number: {}
+    on_states:
+      name: On States
+      description: Comma-separated list of states that indicate a device is "on".
+      default: 'on,playing,home,open'
+      selector:
+        text: {}
+      
 mode: single
 
 variables:
   input_area: !input area
   input_primary_domains: !input primary_domains
   input_exclude_entities: !input exclude_entities
+  input_retry_count: !input retry_count
+  input_retry_delay: !input retry_delay
+  input_on_states: !input on_states
 
 sequence:
   - variables:
       # Get all the entities in the room, then filter by domain and exclude list
-      # Run the following Home Assistant -> Developer Tools -> Template to determine what entities require excluding
-
-      # {% set input_area = 'Lounge' %}
-      # {% set input_exclude_entities = [ ] %}
-      # {% set input_primary_domains = 'switch,light,fan,media_player' %}
-      # {% set area_entities = expand(area_entities(input_area)) | rejectattr('entity_id','in',input_exclude_entities) | list %}
-      # primary_entities: {{ area_entities | selectattr('domain','in', input_primary_domains.split(',') | map('trim') | list) | map(attribute='entity_id') | sort | list}}
-      # climate_entities: {{ area_entities | selectattr('domain','equalto','climate') | map(attribute='entity_id') | sort | list }}
-      # cover_entities: {{ area_entities | selectattr('domain','equalto','cover') | map(attribute='entity_id') | sort | list }}
+      
 
       primary_entities: |-
         {{ 
@@ -54,6 +77,7 @@ sequence:
       climate_entities: |-
         {{ 
           expand(area_entities(input_area)) |
+            rejectattr('entity_id','in',input_exclude_entities) | 
             selectattr('domain','equalto','climate') | 
             map(attribute='entity_id') | 
             list 
@@ -61,16 +85,12 @@ sequence:
       cover_entities: |-
         {{ 
           expand(area_entities(input_area)) |
+            rejectattr('entity_id','in',input_exclude_entities) | 
             selectattr('domain','equalto','cover') | 
             map(attribute='entity_id') | 
             list 
         }}
-      
-  - service: persistent_notification.create
-    data:
-      title: "primary_entities"
-      message: "{{ primary_entities }}"
-
+  
   # 1. Turn Off Primary devices
   - choose:
     - conditions: 
@@ -79,8 +99,7 @@ sequence:
       sequence:
         - service: homeassistant.turn_off
           data:
-            entity_id: >
-              {{ primary_entities }}
+            entity_id: "{{ primary_entities }}"
 
   # 2. Turn Off Climate devices
   - choose:
@@ -105,71 +124,50 @@ sequence:
             entity_id: >
               {{ cover_entities }}
               
-  # - variables:
-  #     device_list: >
-  #       {{ area_entities(input_area) | reject('in',input_exclude_entities) | list }}
-  #     cover_list: >
-  #       {{ expand(device_list) | selectattr('domain','equalto','cover') | map(attribute='entity_id') | list }}
-  #     climate_list: >
-  #       {{ expand(device_list) | selectattr('domain','equalto','climate') | map(attribute='entity_id') | list }}
-  # # 1. Turn Off Primary Domains
-  # - action: homeassistant.turn_off
-  #   data:
-  #     entity_id: >
-  #       {% set domains = input_domains.split(',') %}  
-  #       {{ expand(device_list) | selectattr('domain','in',domains) | map(attribute='entity_id') | list | join(',') }}
-  # # # 2. Close Covers
-  # # - action: cover.close_cover
-  # #   data:
-  # #     entity_id: >
-  # #       {{ cover_list | join(',') }}
-  # # 3. Turn Off Climate Devices
-  # - action: 
-  #     - choose:
-  #         - conditions: 
-  #             - condition: Template
-  #               value_template: "{{ climate_list | length > 0 }}"
-  #           sequence:
-  #             - service: climate.set_hvac_mode
-  #               data:
-  #                 hvac_mode: 'off'
-  #               target:
-  #                 entity_id: "{{ climate_list }}"
-  # # # 4. Retry Loop for Remaining Entities
-  # # - repeat:
-  # #     count: !input retry_count
-  # #     sequence:
-  # #       - delay: seconds: !input retry_delay
-  # #       - variables:
-  # #           still_on: >-
-  # #             {{ expand('area.' ~ !input area)
-  # #                | rejectattr('state','equalto','off')
-  # #                | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
-  # #                | map(attribute='entity_id')
-  # #                | list }}
-  # #       - choose:
-  # #           - conditions: "{{ still_on | length > 0 }}"
-  # #             sequence:
-  # #               - service: homeassistant.turn_off
-  # #                 data:
-  # #                   entity_id: "{{ still_on | join(',') }}"
-  # # # 5. Final Notification
-  # # - variables:
-  # #     final_still_on: >-
-  # #       {{ expand('area.' ~ !input area)
-  # #          | rejectattr('state','equalto','off')
-  # #          | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
-  # #          | map(attribute='entity_id')
-  # #          | list }}
-  # # - choose:
-  # #     - conditions:
-  # #         - "{{ final_still_on | length > 0 }}"
-  # #         - "{{ !input notify_service != 'none' }}"
-  # #       sequence:
-  # #         - service: !input notify_service
-  # #           data:
-  # #             message: >
-  # #               Devices still on in area {{ !input area }}: 
-  # #               {{ final_still_on | join(', ') }}
+  # 4. Retry any entities that are still "on"
+  - repeat:
+      count: "{{ input_retry_count }}"
+      sequence:
+        - delay:
+            seconds: "{{ input_retry_delay }}"
+        - variables:
+            still_on_entities: |-
+              {{ 
+                expand(area_entities(input_area)) |
+                  rejectattr('entity_id','in',input_exclude_entities) | 
+                  selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
+                  selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
+                  map(attribute='entity_id') |
+                  list 
+              }}
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ still_on_entities | length > 0 }}"
+              sequence:
+                - data:
+                    entity_id: |
+                      {{ still_on_entities }}
+                  action: homeassistant.turn_off
 
-
+  # 5. Final log message
+  - variables:
+      final_still_on_entities: |-
+        {{ 
+          expand(area_entities(input_area)) |
+            rejectattr('entity_id','in',input_exclude_entities) | 
+            selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
+            selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
+            map(attribute='entity_id') |
+            list 
+        }}
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ final_still_on_entities | length > 0 }}"
+        sequence:
+          - data:
+              title: Devices still on
+              message: >
+                Devices still on in area [{{ input_area }}]:  {{ final_still_on_entities | join(', ') }}
+            action: persistent_notification.create
