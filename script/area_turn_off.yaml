@@ -41,6 +41,13 @@ blueprint:
       default: 'on,playing,home,open'
       selector:
         text: {}
+    notify_service:
+      name: Notification Service
+      description: Optional notify service to alert if devices remain on.
+      default: none
+      selector:
+        entity:
+          domain: notify
       
 mode: single
 
@@ -51,13 +58,14 @@ variables:
   input_retry_count: !input retry_count
   input_retry_delay: !input retry_delay
   input_on_states: !input on_states
+  input_notify_service: !input notify_service
 
 sequence:
   - variables:
       # Get all the entities in the room, then filter by `domain in input_primary_domains` and `entity_id not in input_exclude_list`
       primary_entities: |-
         {{ 
-          expand(area_entities(input_area)) |
+          expand(area_entities(input.area)) |
             rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
             map(attribute='entity_id') | 
@@ -66,7 +74,7 @@ sequence:
       # Get all the entities in the room, then filter by `domain equalto climate` and `entity_id not in input_exclude_list`
       climate_entities: |-
         {{ 
-          expand(area_entities(input_area)) |
+          expand(area_entities(input.area)) |
             rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','equalto','climate') | 
             map(attribute='entity_id') | 
@@ -75,7 +83,7 @@ sequence:
       # Get all the entities in the room, then filter by `domain equalto cover` and `entity_id not in input_exclude_list`
       cover_entities: |-
         {{ 
-          expand(area_entities(input_area)) |
+          expand(area_entities(input.area)) |
             rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('domain','equalto','cover') | 
             map(attribute='entity_id') | 
@@ -119,7 +127,7 @@ sequence:
         - variables:
             still_on_entities: |-
               {{ 
-                expand(area_entities(input_area)) |
+                expand(area_entities(input.area)) |
                   rejectattr('entity_id','in',input_exclude_entities | default([])) | 
                   selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
                   selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
@@ -138,7 +146,7 @@ sequence:
   - variables:
       final_still_on_entities: |-
         {{ 
-          expand(area_entities(input_area)) |
+          expand(area_entities(input.area)) |
             rejectattr('entity_id','in',input_exclude_entities | default([])) | 
             selectattr('state','in',input_on_states.split(',') | map('trim') | list) |
             selectattr('domain','in',input_primary_domains.split(',') | map('trim') | list) | 
@@ -148,10 +156,29 @@ sequence:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ final_still_on_entities | length > 0 }}"
+            value_template: "{{ final_still_on_entities | length > 0 and input_notify_service != 'none' }}"
         sequence:
           - service: persistent_notification.create
             data:
               title: Devices still on
               message: >
-                Devices still on in area [{{ input_area }}]:  {{ final_still_on_entities | join(', ') }}
+                Devices still on in area [{{ input.area }}]:  {{ final_still_on_entities | join(', ') }}
+
+    # # 5. Final Notification
+    # - variables:
+    #     final_still_on: >-
+    #       {{ expand('area.' ~ !input area)
+    #          | rejectattr('state','equalto','off')
+    #          | selectattr('domain','in', (!input domains).split(',') | map('trim') | list)
+    #          | map(attribute='entity_id')
+    #          | list }}
+    # - choose:
+    #     - conditions:
+    #         - "{{ final_still_on | length > 0 }}"
+    #         - "{{ !input notify_service != 'none' }}"
+    #       sequence:
+    #         - service: !input notify_service
+    #           data:
+    #             message: >
+    #               Devices still on in area {{ !input area }}: 
+    #               {{ final_still_on | join(', ') }}
