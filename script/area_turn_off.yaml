@@ -51,7 +51,7 @@ blueprint:
       
 mode: single
 
--variables:
+variables:
   input_area: !input area
   input_primary_domains: !input primary_domains
   input_exclude_entities: !input exclude_entities
