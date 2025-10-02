@@ -54,7 +54,7 @@ variables:
 
 sequence:
   - variables:
-      # Get all the entities in the room, then filter by domain and exclude list
+      # Get all the entities in the room, then filter by `domain in input_primary_domains` and `entity_id not in input_exclude_list`
       primary_entities: |-
         {{ 
           expand(area_entities(input_area)) |
@@ -63,6 +63,7 @@ sequence:
             map(attribute='entity_id') | 
             list 
         }}
+      # Get all the entities in the room, then filter by `domain equalto climate` and `entity_id not in input_exclude_list`
       climate_entities: |-
         {{ 
           expand(area_entities(input_area)) |
@@ -71,6 +72,7 @@ sequence:
             map(attribute='entity_id') | 
             list 
         }}
+      # Get all the entities in the room, then filter by `domain equalto cover` and `entity_id not in input_exclude_list`
       cover_entities: |-
         {{ 
           expand(area_entities(input_area)) |
@@ -79,7 +81,6 @@ sequence:
             map(attribute='entity_id') | 
             list 
         }}
-  
   # 1. Turn Off Primary devices
   - choose:
     - conditions: 
@@ -89,7 +90,6 @@ sequence:
         - service: homeassistant.turn_off
           target:
             entity_id: "{{ primary_entities | join(', ') }}"
-
   # 2. Turn Off Climate devices
   - choose:
     - conditions: 
@@ -101,7 +101,6 @@ sequence:
             entity_id: "{{ climate_entities | join(', ') }}"
           data:
             hvac_mode: 'off'
-
   # 3. Close Covers
   - choose:
     - conditions: 
@@ -111,7 +110,6 @@ sequence:
         - service: cover.close_cover
           target:
             entity_id: "{{ cover_entities | join(', ') }}"
-              
   # 4. Retry any entities that are still "on"
   - repeat:
       count: "{{ input_retry_count }}"
@@ -136,7 +134,6 @@ sequence:
                 - service: homeassistant.turn_off
                   target:
                     entity_id: "{{ still_on_entities | join(', ') }}"
-                  
   # 5. Final log message
   - variables:
       final_still_on_entities: |-
